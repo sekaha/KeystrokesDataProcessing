@@ -1,9 +1,8 @@
 import pandas as pd
 import os
 
+# This decomposed the participant test files into folders that have each test they completed
 participants = pd.read_csv("metadata_participants.txt", sep="\t")
-
-ids = participants["PARTICIPANT_ID"]
 
 for ID in participants["PARTICIPANT_ID"]:
     participant_file_name = "files/" + str(ID).zfill(6)
@@ -13,37 +12,36 @@ for ID in participants["PARTICIPANT_ID"]:
         continue
 
     print(participant_file_name + ".txt")
-    test_data = pd.read_csv(participant_file_name + ".txt", sep="\t", quoting=3)
 
-    # make a folder to session files in
+    # make a folder to session files in, if it already exists, we don't need to do new work
     if not os.path.exists(participant_file_name):
         os.makedirs(participant_file_name)
 
-    session_id = ""
-    session_file = None
+        session_id = ""
+        session_file = None
 
-    with open(participant_file_name + ".txt") as file:
-        # skip header
-        file.readline()
+        with open(participant_file_name + ".txt", encoding="latin-1") as file:
+            # skip header
+            file.readline()
+            lines_remain = True
 
-        for l in file:
-            data = l.split("\t")
+            while lines_remain:
+                l = file.readline()
 
-            # make a new file for each session
-            if session_id != data[1]:
-                session_id = data[1]
-                session_file = open(f"{participant_file_name}/{session_id}.txt", "w")
+                if not l:
+                    break
 
-            # super jank fix because they included tabs as a data point :face_palm:
-            if len(data) > 10:
-                data = data[:8] + ["Tab"] + data[-1]
+                data = l.split("\t")
 
-            session_file.write("\t".join(data))
+                # make a new file for each session
+                if session_id != data[1]:
+                    session_id = data[1]
+                    session_file = open(
+                        f"{participant_file_name}/{session_id}.txt", "w"
+                    )
 
-    print(1 / 0)
-    """for section_id in test_data["TEST_SECTION_ID"].unique():
-        section = test_data[(test_data["TEST_SECTION_ID"] == section_id)]
+                # super jank fix because they included tabs as a data point :face_palm:
+                if len(data) > 9:
+                    data = data[:7] + ["Tab"] + [data[-1]]
 
-        section.to_csv(
-            participant_file_name + f"/{section_id}.txt", sep="\t", index=False
-        )"""
+                session_file.write("\t".join(data))
