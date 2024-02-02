@@ -33,12 +33,20 @@ for ID in participants["PARTICIPANT_ID"]:
 
                 data = l.split("\t")
 
+                # handeling the fact that lines can have \n as a valid input type
+                if len(data) == 8:
+                    data += ["ENTER", "77"]
+                    file.readline()
+
                 # make a new file for each session
                 if session_id != data[1]:
                     session_id = data[1]
                     session_file = open(
                         f"{participant_file_name}/{session_id}.txt", "w"
                     )
+
+                    if "\n" in session_id:
+                        raise ValueError(f"!{participant_file_name},{session_id}")
 
                 # super jank fix because they included tabs as a data point :face_palm:
                 if len(data) > 9:

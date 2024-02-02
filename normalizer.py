@@ -39,46 +39,56 @@ def string_norm(s, layout):
 
 def convert_typing_session(session_file, layout="qwerty"):
     with open(session_file) as file:
-        lines = [l for l in file]
+        lines = [l.split("\t") for l in file]
         record = []
 
         def helper(text_pt, line_num, record_i):
-            nonlocal record
+            nonlocal record, layout, lines
             duration_residue = 0
 
             while line_num < len(lines):
-                data = lines[line_num].split("\t")
-                start, end = map(int, data[5:7])
+                data = lines[line_num]
+                start, end = map(float, data[5:7])
                 duration = end - start
                 correct_string = data[2]
                 char = string_norm(data[-2], layout)
 
                 # We have to treat shift special, since it's a precursor to a correct character but isn't represented in the typing test string of course
                 if char == "Bksp":
-                    # Recursively check any number of back spaces
-                    for i in range(1, text_pt):
-                        record = record[:record_i]
-                        text_pt -= 1
+                    # print(lines[line_num - 1])
+                    duration_residue += duration
 
-                        if helper(text_pt, line_num, record_i):
-                            break
+                    if (
+                        line_num < len(lines) - 1
+                        and string_norm(lines[line_num + 1][-2], layout) == "Bksp"
+                    ):
+                        lines = lines[: line_num + 1] + lines[line_num + 2 :]
+                        text_pt -= 1
+                        continue
+                    else:
+                        line_num += 1
+
+                        # Recursively check any number of back spaces
+                        for i in range(text_pt):
+                            record = record[:record_i]
+                            text_pt -= 1
+
+                            if helper(text_pt, line_num, record_i):
+                                break
                     continue
                 else:
+                    line_num += 1
                     try:
                         correct_char = string_norm(correct_string[text_pt], layout)
                     except:
                         return False
 
-                    line_num += 1
-
-                    if (correct_char in shifted_keys) and (char == "Shift"):
-                        duration_residue = duration
-                        continue
-                    elif char == "Shift":  # shift typo!!!
+                    if (char == "Shift") or (char == "Caps_Lock"):
+                        duration_residue += duration
                         continue
                     else:
-                        if correct_char in shifted_keys:
-                            duration += duration_residue
+                        duration += duration_residue
+                        duration_residue = 0
                         text_pt += 1
 
                 record.append((char, duration, correct_char))
@@ -87,7 +97,10 @@ def convert_typing_session(session_file, layout="qwerty"):
             # Successfully made it through all lines without overflow
             return True
 
-        return helper(0, 0, 1)
+        helper(0, 0, 1)
+
+        for l in record:
+            print(l)
 
 
 convert_typing_session(f"files/{participant}/10.txt")
