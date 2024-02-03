@@ -1,7 +1,7 @@
 import pandas as pd
 
 participants = pd.read_csv("files/metadata_participants.txt", sep="\t")
-
+print(participants.columns)
 # print(participants["LAYOUT"].unique())
 # print(participants[((participants["AVG_WPM_15"] >= 0))])
 # print(
@@ -18,6 +18,6 @@ participants = pd.read_csv("files/metadata_participants.txt", sep="\t")
 #
 # print(participants["PARTICIPANT_ID"])
 
-for ID in participants["PARTICIPANT_ID"]:
-    with open("files/" + f"{100000+ID}_keystrokes.txt") as file:
-        print()
+# for ID in participants["PARTICIPANT_ID"]:
+#    with open("files/" + f"{100000+ID}_keystrokes.txt") as file:
+#        print()

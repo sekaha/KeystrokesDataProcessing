@@ -4,7 +4,7 @@ import os
 # This decomposed the participant test files into folders that have each test they completed
 participants = pd.read_csv("metadata_participants.txt", sep="\t")
 
-for ID in participants["PARTICIPANT_ID"]:
+for p in participants:
     participant_file_name = "files/" + str(ID).zfill(6)
 
     if not os.path.exists(participant_file_name + ".txt"):
