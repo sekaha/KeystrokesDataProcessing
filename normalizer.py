@@ -47,11 +47,11 @@ def amend_record(correct_str, typing_record, record):
     typed_str = "".join([a for a, b in typing_record])
 
     for src, dst, size in typo_finder.get_matching_strs(typed_str, correct_str):
-        print(src, dst, size)
+        # print(src, dst, size)
 
         for i in range(size):
             record[typing_record[src + i][1]][2] = correct_str[dst + i]
-            print(record[typing_record[src + i][1]])
+            # print(record[typing_record[src + i][1]])
 
 
 def convert_typing_session(session_file, layout="qwerty"):
@@ -120,6 +120,9 @@ def convert_typing_session(session_file, layout="qwerty"):
                     # we have to treat shift and caps lock special, because they add time onto the following character's typing time, but should not be included in key set
                     # this does pose a problem with caps KEY caps KEY tho... since the latter is undoing the former... annoying of people who type that way lol
                     if len(char) > 1:  # (char == "SHIFT") or (char == "CAPS_LOCK"):
+                        if char not in ("SHIFT", "CAPS_LOCK", "ARW_LEFT", "ARW_RIGHT"):
+                            print(char)
+                            print(1 / 0)
                         duration_residue += duration
                         continue
                     else:
@@ -133,7 +136,11 @@ def convert_typing_session(session_file, layout="qwerty"):
                 record_i += 1
 
             # Successfully made it through all lines without overflow
-            amend_record(correct_string[:text_pt], curr_string, record)
+            amend_record(correct_string, curr_string, record)
+
+            if "But thank you for the offer" in correct_string:
+                print(record)
+                print(1 / 0)
             return True
 
         helper(0, 0, 0)

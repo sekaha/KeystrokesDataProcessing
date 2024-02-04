@@ -4,7 +4,7 @@ import os
 # This decomposed the participant test files into folders that have each test they completed
 participants = pd.read_csv("metadata_participants.txt", sep="\t")
 
-for p in participants:
+for ID in participants["PARTICIPANT_ID"]:
     participant_file_name = "files/" + str(ID).zfill(6)
 
     if not os.path.exists(participant_file_name + ".txt"):
@@ -34,7 +34,7 @@ for p in participants:
                 data = l.split("\t")
 
                 # handeling the fact that lines can have \n as a valid input type
-                if len(data) == 8:
+                if len(data) < 9:
                     data += ["ENTER", "77"]
                     file.readline()
 
@@ -50,6 +50,6 @@ for p in participants:
 
                 # super jank fix because they included tabs as a data point :face_palm:
                 if len(data) > 9:
-                    data = data[:7] + ["Tab"] + [data[-1]]
+                    data = data[:7] + ["TAB"] + [data[-1]]
 
                 session_file.write("\t".join(data))
