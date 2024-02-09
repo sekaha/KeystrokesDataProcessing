@@ -1,3 +1,5 @@
 typingrecords/
 output/
 __pycache__
+nstrokes/
+ngrams/

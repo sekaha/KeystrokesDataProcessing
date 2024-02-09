@@ -7,6 +7,22 @@ qwerty = "`1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIO
 shifted_keys = 'QWERTYUIOPASDFGHJKLZXCVBNM,.<>?:"{}~!@\#$%^&*()_+|'
 
 
+class key_record:
+    def __init__(self, char, start_time, is_correct):
+        self.char = char
+        self.start_time = start_time
+        self.is_correct = is_correct
+
+    def copy(self):
+        return key_record(self.char, self.start_time, self.is_correct)
+
+    def __repr__(self):
+        return f"{self.char} {self.start_time} {self.is_correct}"
+
+    def __str__(self):
+        return f"{self.char}, {self.start_time}, {self.is_correct}"
+
+
 def get_mapping(keys):
     return {k: v for k, v in zip(keys, qwerty)}
 
@@ -25,7 +41,12 @@ mappings = {
 }
 
 
-def string_norm(s, layout):
+def print_debug(*args):
+    print(*args)
+    pass
+
+
+def normalize_string(s, layout):
     if len(s) > 1:
         return s
 
@@ -106,7 +127,7 @@ def find_longest_match(
 
 
 # Get list of matching strs between sequences
-def get_matching_strs(str_a, str_b):
+def get_matching_strings(str_a, str_b):
     # Maintain a queue of the upper and lower bounds of the str a and the str b
     len_a, len_b = len(str_a), len(str_b)
     queue = [(0, len_a, 0, len_b)]
@@ -161,77 +182,92 @@ def get_duration(data):
     return end - start
 
 
-def amend_record(correct_str, typing_record, record, threshold=1):
+def amend_key_record(correct_str, typing_record, record, threshold=1):
     typed_str = "".join([a for a, b in typing_record])
-    correct = 0
+    matching_strs = get_matching_strings(typed_str, correct_str)
 
-    for src, dst, size in get_matching_strs(typed_str, correct_str):
-        # print(src, dst, size)
+    for i, (src, dst, size) in enumerate(matching_strs):
         if size > threshold:
-            correct += size
+            for j in range(size):
+                typing_record[src + j][1].is_correct = True
 
-            for i in range(size):
-                record[typing_record[src + i][1]][2] = True
+            # Adding a duplicate for when a character was missed
+            if i < len(matching_strs) - 1:
+                incorrect_record = typing_record[size][1]
+                new_record = incorrect_record.copy()
+                new_record.is_correct = False
+                record_i = record.index(incorrect_record)
 
-    return correct
+                record = record[:record_i] + [new_record] + record[record_i:]
+
+    return record
 
 
-def convert_typing_session(session_file, wpm_file, layout="qwerty"):
-    correct_chars_typed = 0
-    lines = [l.split("\t") for l in file]
-    record = []
-    line_num = record_i = 0
+def is_capital_pair(i, lines, layout):
+    return (
+        lines[i][-2] == "SHIFT"
+        and i + 1 < len(lines)
+        and normalize_string(lines[i + 1][-2], layout) in shifted_keys
+    ) or (lines[i][-2] == "CAPS_LOCK")
+
+
+def calculate_wpm(correct_chars_typed, total_duration):
+    return round((correct_chars_typed / 5) / (total_duration / 60000))
+
+
+def process_typing_session(session_file, wpm_file, layout="qwerty"):
+    lines = [l.split("\t") for l in session_file]
     correct_string = lines[0][2]
+    key_records = []
     curr_string = []
-
-    # the times can be huge and require floats, but the duration is fine as an int
     total_duration = int(float(lines[-1][5]) - float(lines[0][5]))
-    print("duration", total_duration)
-    # duration_residue = 0
+    is_time_shifted = False
+    new_start = 0
 
-    while line_num < len(lines):
-        data = lines[line_num]
-        # duration = get_duration(data)
-        char = string_norm(data[-2], layout)
+    for i, line in enumerate(lines):
+        start_time = line[5]
+        char = normalize_string(line[-2], layout)
 
         # backspaces are inconsistent in some files and can either represent one or more backspaces
         if len(char) > 1:
-            line_num += 1
-
-            if (
-                char == "SHIFT"
-                and (line_num < len(lines))
-                and string_norm(lines[line_num][-2], layout) in shifted_keys
-            ):
-                # duration_residue += duration
+            if is_capital_pair(i, lines, layout):
+                if not is_time_shifted:
+                    is_time_shifted = True
+                    new_start = start_time
                 continue
 
-            correct_chars_typed += amend_record(correct_string, curr_string, record)
+            if is_time_shifted:
+                start_time = new_start
+                is_time_shifted = False
+
+            key_records = amend_key_record(correct_string, curr_string, key_records)
             curr_string = []
-            record.append([char, data[5], False])
-            record_i += 1
+            key_records.append(key_record(char, start_time, False))
             continue
-        else:
-            line_num += 1
-            # duration += duration_residue
-            # duration_residue = 0
 
-        record.append([char, data[5], False])
-        curr_string.append((char, record_i))
-        record_i += 1
+        if is_time_shifted:
+            start_time = new_start
+            is_time_shifted = False
 
-    # Successfully made it through all lines without overflow
+        key_records.append(key_record(char, start_time, False))
+        curr_string.append((char, key_records[-1]))
+
+    # finally amendment now that the processing has completed
+    key_records = amend_key_record(correct_string, curr_string, key_records)
 
     # Write the processed session file
     prefix = re.match(r"(.*)\.txt", session_file.name).group(1)
-    print(f"{prefix}_processed.txt")
-    new_file = open(f"{prefix}_processed.txt", "w")
-    new_file.write("\n".join([", ".join([str(x) for x in l]) for l in record]))
+    print_debug(f"{prefix}_processed.txt")
 
-    # add the WPM for this session to the meta data file
-    correct_chars_typed += amend_record(correct_string, curr_string, record)
-    wpm = round((correct_chars_typed / 5) / (total_duration / 60000))
-    print("wpm", wpm)
+    with open(f"{prefix}_processed.txt", "w") as new_file:
+        for k in key_records:
+            new_file.write(str(k) + "\n")
+
+    # process and save wpm metadata
+    correct_typed = sum([int(k.is_correct) for k in key_records])
+    wpm = calculate_wpm(correct_typed, total_duration)
+    print_debug("wpm", wpm)
+
     session_name = prefix.split("/")[-1]
     wpm_file.write(f"{session_name} {wpm}\n")
 
@@ -239,22 +275,17 @@ def convert_typing_session(session_file, wpm_file, layout="qwerty"):
 ### Bringing it all together baby :))
 participants = pd.read_csv("metadata_participants.txt", sep="\t")
 
+
 # participants["AVG_WPM_15"] > 0
 with open("wpm_metadata.txt", "w") as wpm_record:
-    with open("files/517947/5579566.txt") as file:
-        convert_typing_session(file, wpm_record)
-
-    """
     for i, p in participants.iterrows():
         ID = p["PARTICIPANT_ID"]
-        layout = p["LAYOUT"]ee
-        participant_dir = "files/" + str(ID).zfill(6)
+        layout = p["LAYOUT"]
+        participant_dir = "typingrecords/" + str(ID).zfill(6)
 
         for file_name in os.listdir(participant_dir):
             if re.match(r"(.*)\.txt", file_name).group(1).isdigit():
-                print(participant_dir + "/" + file_name)
+                print_debug(participant_dir + "/" + file_name)
 
                 with open(participant_dir + "/" + file_name) as file:
-                    convert_typing_session(file, wpm_record, layout)
-    """
-e
+                    process_typing_session(file, wpm_record, layout)
