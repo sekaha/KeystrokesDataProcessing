@@ -3,3 +3,4 @@ output/
 __pycache__
 nstrokes/
 ngrams/
+wpm_metadata.txt
