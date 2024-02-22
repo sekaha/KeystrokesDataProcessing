@@ -2,6 +2,8 @@ import pandas as pd
 import re
 import os
 
+debug = False
+
 ### Layout Mapping ###
 qwerty = "`1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>? "
 shifted_keys = 'QWERTYUIOPASDFGHJKLZXCVBNM,.<>?:"{}~!@\#$%^&*()_+|'
@@ -42,8 +44,8 @@ mappings = {
 
 
 def print_debug(*args):
-    print(*args)
-    pass
+    if debug:
+        print(*args)
 
 
 def normalize_string(s, layout):
@@ -182,18 +184,18 @@ def get_duration(data):
     return end - start
 
 
-def amend_key_record(correct_str, typing_record, record, threshold=1):
+def amend_key_record(correct_str, typing_record, record, threshold=3):
     typed_str = "".join([a for a, b in typing_record])
     matching_strs = get_matching_strings(typed_str, correct_str)
 
     for i, (src, dst, size) in enumerate(matching_strs):
-        if size > threshold:
+        if size >= threshold:
             for j in range(size):
                 typing_record[src + j][1].is_correct = True
 
             # Adding a duplicate for when a character was missed
             if i < len(matching_strs) - 1:
-                incorrect_record = typing_record[size][1]
+                incorrect_record = typing_record[src + size][1]
                 new_record = incorrect_record.copy()
                 new_record.is_correct = False
                 record_i = record.index(incorrect_record)
@@ -277,6 +279,7 @@ participants = pd.read_csv("metadata_participants.txt", sep="\t")
 
 
 # participants["AVG_WPM_15"] > 0
+# 168161/1825516
 with open("wpm_metadata.txt", "w") as wpm_record:
     for i, p in participants.iterrows():
         ID = p["PARTICIPANT_ID"]

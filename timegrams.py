@@ -1,33 +1,31 @@
+import concurrent.futures
 import pandas as pd
 import re
 import os
-from multiprocessing import Process, Manager
+from collections import defaultdict
 
-session_wpms = dict(
-    map(
-        lambda x: map(int, x.split()),
-        [l for l in open("wpm_metadata.txt")],
-    ),
-)
+debug = False
+
+
+def print_debug(*args):
+    if debug:
+        print(*args)
+
+
+f = open("wpm_metadata.txt")
+session_wpms = dict(map(lambda x: map(int, x.split()), [l for l in f]))
+f.close()
 
 DATA_TYPES = {
     "bistrokes": (2, 0),
-    # "tristrokes": (3, 0),
-    # "quadristroke": (4, 0),
-    # "1-skip": (2, 1),
-    # "2-skip": (2, 2),
-    # "3-skip": (2, 3),
-    # "4-skip": (2, 4),
-    # "5-skip": (2, 5),
-    # "6-skip": (2, 6),
-    # "7-skip": (2, 7)
+    "tristrokes": (3, 0),
+    "1-skip": (2, 1),
 }
 
-valid_chars = set("-qwertyuiopasdfghjkl'zxcvbnm,._QWERTYUIOPASDFGHJKL\"ZXCVBNM<>")
+valid_chars = set("qwertyuiopasdfghjkl;zxcvbnm,./QWERTYUIOPASDFGHJKL:ZXCVBNM<>?")
 
 
 def split_lines(file):
-    # Function to split lines in a file
     with open(file) as f:
         lines = [l.strip("\n").split(", ") for l in f]
     return lines
@@ -35,71 +33,70 @@ def split_lines(file):
 
 def process_window(file, size, skip, strokes):
     lines = split_lines(file)
-    print(file)
+    print_debug(file)
 
-    # Function to process the window of lines
     for i in range(len(lines) - size - skip + 1):
         window = lines[i : i + size + skip]
 
-        # check correctness of string, only correct strings will get accepted
         if all([l[2] == "True" for l in window]):
             stroke_data = window[: int(size / 2)] + window[-int(size / 2 + 0.5) :]
             duration = int(float(stroke_data[-1][1]) - float(stroke_data[0][1]))
             stroke = "".join([l[0] for l in stroke_data])
 
+            if stroke == "b,I":
+                print(file)
+
             if all([c in valid_chars for c in stroke]):
-                strokes[stroke] = strokes.get(stroke, []) + [duration]
+                strokes[stroke].append(duration)
 
 
 def process_data_type(alias, size, skip, wpm, shared_strokes):
-    strokes = shared_strokes[alias]
-    participants = pd.read_csv("metadata_participants.txt", sep="\t")
-    processes = []
+    try:
+        strokes = shared_strokes[alias]
+        participants = pd.read_csv("metadata_participants.txt", sep="\t")
 
-    for i, p in participants.iterrows():
-        ID = p["PARTICIPANT_ID"]
-        participant_dir = "typingrecords/" + str(ID).zfill(6)
+        for i, p in participants[
+            (participants["FINGERS"] == "9-10")
+            & (participants["KEYBOARD_TYPE"] != "on-screen")
+        ].iterrows():
+            ID = p["PARTICIPANT_ID"]
+            participant_dir = "typingrecords/" + str(ID).zfill(6)
 
-        for file_name in os.listdir(participant_dir):
-            match = re.match(r"(.*)_processed\.txt", file_name)
+            for file_name in os.listdir(participant_dir):
+                match = re.match(r"(.*)_processed\.txt", file_name)
 
-            if (
-                match
-                and match.group(1).isdigit()
-                and session_wpms[int(match.group(1))] > wpm
-            ):
-                print(session_wpms[int(match.group(1))])
-                p = Process(
-                    target=process_window,
-                    args=(participant_dir + "/" + file_name, size, skip, strokes),
-                )
-                processes.append(p)
-                p.start()
+                if (
+                    match
+                    and match.group(1).isdigit()
+                    and session_wpms[int(match.group(1))] > wpm
+                ):
+                    print_debug(participant_dir + "/" + file_name)
+                    process_window(
+                        participant_dir + "/" + file_name, size, skip, strokes
+                    )
 
-    for p in processes:
-        p.join()
+        with open(f"nstrokes/{alias}_{wpm}.txt", "w") as output:
+            for k in sorted(strokes.keys()):
+                output.write(k + ", " + ", ".join(map(str, sorted(strokes[k]))) + "\n")
 
-    with open(f"nstrokes/{alias}_{wpm}.txt", "w") as output:
-        for k in sorted(strokes.keys()):
-            output.write(k + ", " + ", ".join(map(str, sorted(strokes[k]))) + "\n")
-
-    print("nstrokes/" + alias + ".txt")
+        print(f"nstrokes/{alias}_{wpm}.txt")
+    except Exception as e:
+        print(e)
 
 
 def get_strokes(wpm):
-    manager = Manager()
-    shared_strokes = {alias: manager.dict() for alias in DATA_TYPES.keys()}
-    processes = []
+    shared_strokes = {alias: defaultdict(list) for alias in DATA_TYPES.keys()}
 
-    for alias, (size, skip) in DATA_TYPES.items():
-        p = Process(
-            target=process_data_type, args=(alias, size, skip, wpm, shared_strokes)
-        )
-        processes.append(p)
-        p.start()
-
-    for p in processes:
-        p.join()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [
+            executor.submit(process_data_type, alias, size, skip, wpm, shared_strokes)
+            for alias, (size, skip) in DATA_TYPES.items()
+        ]
+        concurrent.futures.wait(futures)
 
 
-get_strokes(0)
+wpms = [int(l.split(" ")[1]) for l in open("wpm_metadata.txt")]
+avg_wpm = int(sum(wpms) / len(wpms))
+
+for s_num in (avg_wpm,):
+    get_strokes(s_num)
