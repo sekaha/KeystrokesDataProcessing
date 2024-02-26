@@ -18,8 +18,8 @@ f.close()
 
 DATA_TYPES = {
     "bistrokes": (2, 0),
-    "tristrokes": (3, 0),
-    "1-skip": (2, 1),
+    # "tristrokes": (3, 0),
+    # "1-skip": (2, 1),
 }
 
 valid_chars = set("qwertyuiopasdfghjkl;zxcvbnm,./QWERTYUIOPASDFGHJKL:ZXCVBNM<>?")
@@ -31,7 +31,7 @@ def split_lines(file):
     return lines
 
 
-def process_window(file, size, skip, strokes):
+def process_window(file, size, skip, wpm, strokes):
     lines = split_lines(file)
     print_debug(file)
 
@@ -47,37 +47,50 @@ def process_window(file, size, skip, strokes):
                 print(file)
 
             if all([c in valid_chars for c in stroke]):
-                strokes[stroke].append(duration)
+                strokes[stroke].append((wpm, duration))
 
 
 def process_data_type(alias, size, skip, wpm, shared_strokes):
     try:
-        strokes = shared_strokes[alias]
-        participants = pd.read_csv("metadata_participants.txt", sep="\t")
-
-        for i, p in participants[
-            (participants["FINGERS"] == "9-10")
-            & (participants["KEYBOARD_TYPE"] != "on-screen")
-        ].iterrows():
-            ID = p["PARTICIPANT_ID"]
-            participant_dir = "typingrecords/" + str(ID).zfill(6)
-
-            for file_name in os.listdir(participant_dir):
-                match = re.match(r"(.*)_processed\.txt", file_name)
-
-                if (
-                    match
-                    and match.group(1).isdigit()
-                    and session_wpms[int(match.group(1))] > wpm
-                ):
-                    print_debug(participant_dir + "/" + file_name)
-                    process_window(
-                        participant_dir + "/" + file_name, size, skip, strokes
-                    )
-
         with open(f"nstrokes/{alias}_{wpm}.txt", "w") as output:
-            for k in sorted(strokes.keys()):
-                output.write(k + ", " + ", ".join(map(str, sorted(strokes[k]))) + "\n")
+            for layout in ("azerty", "dvorak", "qwerty", "qwertz"):
+                strokes = shared_strokes[alias]
+                participants = pd.read_csv("metadata_participants.txt", sep="\t")
+
+                for i, p in participants[
+                    (participants["FINGERS"] == "9-10")
+                    & (participants["KEYBOARD_TYPE"] != "on-screen")
+                    & (participants["LAYOUT"] == layout)
+                ].iterrows():
+                    ID = p["PARTICIPANT_ID"]
+                    participant_dir = "typingrecords/" + str(ID).zfill(6)
+
+                    for file_name in os.listdir(participant_dir):
+                        match = re.match(r"(.*)_processed\.txt", file_name)
+
+                        if (
+                            match
+                            and match.group(1).isdigit()
+                            and session_wpms[int(match.group(1))] > wpm
+                        ):
+                            print_debug(participant_dir + "/" + file_name)
+                            process_window(
+                                participant_dir + "/" + file_name,
+                                size,
+                                skip,
+                                wpm,
+                                strokes,
+                            )
+
+                for k in sorted(strokes.keys()):
+                    output.write(
+                        layout
+                        + ", "
+                        + k
+                        + ", "
+                        + ", ".join(map(str, sorted(strokes[k])))
+                        + "\n"
+                    )
 
         print(f"nstrokes/{alias}_{wpm}.txt")
     except Exception as e:
@@ -98,5 +111,5 @@ def get_strokes(wpm):
 wpms = [int(l.split(" ")[1]) for l in open("wpm_metadata.txt")]
 avg_wpm = int(sum(wpms) / len(wpms))
 
-for s_num in (avg_wpm,):
+for s_num in (100,):
     get_strokes(s_num)

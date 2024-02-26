@@ -2,7 +2,7 @@ import pandas as pd
 import re
 import os
 
-debug = False
+debug = True
 
 ### Layout Mapping ###
 qwerty = "`1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>? "
@@ -184,9 +184,11 @@ def get_duration(data):
     return end - start
 
 
-def amend_key_record(correct_str, typing_record, record, threshold=3):
+def amend_key_record(correct_str, typing_record, record, layout, threshold=3):
     typed_str = "".join([a for a, b in typing_record])
-    matching_strs = get_matching_strings(typed_str, correct_str)
+    matching_strs = get_matching_strings(
+        typed_str, "".join([normalize_string(c, layout) for c in correct_str])
+    )
 
     for i, (src, dst, size) in enumerate(matching_strs):
         if size >= threshold:
@@ -242,7 +244,9 @@ def process_typing_session(session_file, wpm_file, layout="qwerty"):
                 start_time = new_start
                 is_time_shifted = False
 
-            key_records = amend_key_record(correct_string, curr_string, key_records)
+            key_records = amend_key_record(
+                correct_string, curr_string, key_records, layout
+            )
             curr_string = []
             key_records.append(key_record(char, start_time, False))
             continue
@@ -255,7 +259,7 @@ def process_typing_session(session_file, wpm_file, layout="qwerty"):
         curr_string.append((char, key_records[-1]))
 
     # finally amendment now that the processing has completed
-    key_records = amend_key_record(correct_string, curr_string, key_records)
+    key_records = amend_key_record(correct_string, curr_string, key_records, layout)
 
     # Write the processed session file
     prefix = re.match(r"(.*)\.txt", session_file.name).group(1)
@@ -282,13 +286,15 @@ participants = pd.read_csv("metadata_participants.txt", sep="\t")
 # 168161/1825516
 with open("wpm_metadata.txt", "w") as wpm_record:
     for i, p in participants.iterrows():
-        ID = p["PARTICIPANT_ID"]
-        layout = p["LAYOUT"]
-        participant_dir = "typingrecords/" + str(ID).zfill(6)
+        if p["LAYOUT"] == "dvorak":
+            ID = p["PARTICIPANT_ID"]
+            layout = p["LAYOUT"]
+            participant_dir = "typingrecords/" + str(ID).zfill(6)
 
-        for file_name in os.listdir(participant_dir):
-            if re.match(r"(.*)\.txt", file_name).group(1).isdigit():
-                print_debug(participant_dir + "/" + file_name)
+            for file_name in os.listdir(participant_dir):
+                if re.match(r"(.*)\.txt", file_name).group(1).isdigit():
+                    print_debug(participant_dir + "/" + file_name)
 
-                with open(participant_dir + "/" + file_name) as file:
-                    process_typing_session(file, wpm_record, layout)
+                    with open(participant_dir + "/" + file_name) as file:
+                        process_typing_session(file, wpm_record, layout)
+                        print(1 / 0)

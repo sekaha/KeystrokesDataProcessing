@@ -34,13 +34,19 @@ with open(f"nstrokes/bistrokes_{wpm}.txt") as file:
         ):
             y.append(avg)
             x.append(bigrams[bistroke])
-            c.append("red" if classifier.same_finger(bistroke) else "#1f77b4")
+            c.append(
+                "red"
+                if classifier.inwards_rotation(bistroke)
+                else "black"
+                if classifier.outwards_rotation(bistroke)
+                else "yellow"
+            )
             # print("".join(bistroke[::-1]))
             # if (
             #    bistroke in list(bigrams.keys())[:20]
             #    or "".join(bistroke[::-1]) in list(bigrams.keys())[:20]
             # ):
-            plt.annotate(bistroke, xy=(bigrams[bistroke], avg))
+            # plt.annotate(bistroke, xy=(bigrams[bistroke], avg))
 """
 skipgrams = {
     k: int(v) for (k, v) in [l.strip().split("\t") for l in open("ngrams/1-skip.txt")]
@@ -87,8 +93,8 @@ def log_func(x, a, b, c):
 popt, pcov = curve_fit(log_func, x, y)
 new_y = log_func(np.sort(x), *popt)
 print(*popt)
-plt.scatter(x, y, c=c, s=10)
-plt.plot(np.sort(x), new_y, c="red")
+plt.scatter(x, y, c=c, s=20)
+plt.plot(np.sort(x), new_y, c="#ff6361")
 plt.xlabel("Number of Occurrences in Corpus ")
 plt.ylabel("Average Typing Time (Milliseconds)")
 plt.xscale("log")
