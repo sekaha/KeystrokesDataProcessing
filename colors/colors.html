@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="style.css">
+    <title>Color Palette Generator</title>
+</head>
+
+<body>
+    <div class="color-inputs">
+        <div class="color-input-item">
+            <input type="color" id="color1">
+        </div>
+        <div class="color-input-item">
+            <input type="color" id="color2">
+        </div>
+        <div class="palette-count">
+            <select id="palette-count-input">
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14">14</option>
+                <option value="15">15</option>
+                <option value="16">16</option>
+                <option value="32">32</option>
+                <option value="64">64</option>
+            </select>
+        </div>
+        <div class="palette-type">
+            <select id="palette-type">
+                <option value="sequential" selected>Sequential</option>
+                <option value="diverging" selected>Diverging</option>
+                <!--<option value="triad">Triad</option>-->
+                <option value="spectrum">Spectrum</option>
+            </select>
+        </div>
+        <div class="color-blindness">
+            <select id="color-blindness">
+                <option value="none" selected>none</option>
+                <option value="deuteranopia">Deuteranopia</option>
+                <option value="protanopia">Protanopia</option>
+                <option value="tritanopia">Tritanopia</option>
+            </select>
+        </div>
+
+    </div>
+    <div class="palette" id="palette"></div>
+    <script src="chroma.js"></script>
+    <script src="colors.js"></script>
+    <script src="colorblind.js"></script>
+    <script src="blinder.js"></script>
+</body>
+
+</html>

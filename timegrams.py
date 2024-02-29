@@ -3,6 +3,11 @@ import pandas as pd
 import re
 import os
 from collections import defaultdict
+from mapper import mappings
+
+bigrams_freqs = {
+    k: int(v) for (k, v) in [l.strip().split("\t") for l in open("ngrams/bigrams.txt")]
+}
 
 debug = False
 
@@ -13,7 +18,7 @@ def print_debug(*args):
 
 
 f = open("wpm_metadata.txt")
-session_wpms = dict(map(lambda x: map(int, x.split()), [l for l in f]))
+session_wpms = dict(map(lambda x: map(int, x.split(" ")), [l for l in f]))
 f.close()
 
 DATA_TYPES = {
@@ -31,7 +36,7 @@ def split_lines(file):
     return lines
 
 
-def process_window(file, size, skip, wpm, strokes):
+def process_window(file, size, skip, wpm, strokes, layout):
     lines = split_lines(file)
     print_debug(file)
 
@@ -43,10 +48,12 @@ def process_window(file, size, skip, wpm, strokes):
             duration = int(float(stroke_data[-1][1]) - float(stroke_data[0][1]))
             stroke = "".join([l[0] for l in stroke_data])
 
-            if stroke == "b,I":
+            if len(stroke) != size:
                 print(file)
+                print(stroke)
+                print(i)
 
-            if all([c in valid_chars for c in stroke]):
+            if all([c in valid_chars for c in stroke]) and len(stroke) == size:
                 strokes[stroke].append((wpm, duration))
 
 
@@ -55,7 +62,7 @@ def process_data_type(alias, size, skip, wpm, shared_strokes):
         with open(f"nstrokes/{alias}_{wpm}.txt", "w") as output:
             for layout in ("azerty", "dvorak", "qwerty", "qwertz"):
                 strokes = shared_strokes[alias]
-                participants = pd.read_csv("metadata_participants.txt", sep="\t")
+                participants = pd.read_csv("meta/metadata_participants.txt", sep="\t")
 
                 for i, p in participants[
                     (participants["FINGERS"] == "9-10")
@@ -71,26 +78,31 @@ def process_data_type(alias, size, skip, wpm, shared_strokes):
                         if (
                             match
                             and match.group(1).isdigit()
-                            and session_wpms[int(match.group(1))] > wpm
+                            and session_wpms[int(match.group(1))] > 0
                         ):
                             print_debug(participant_dir + "/" + file_name)
                             process_window(
                                 participant_dir + "/" + file_name,
                                 size,
                                 skip,
-                                wpm,
+                                session_wpms[int(match.group(1))],
                                 strokes,
+                                layout,
                             )
 
+                output_lines = []
+
                 for k in sorted(strokes.keys()):
-                    output.write(
-                        layout
-                        + ", "
-                        + k
-                        + ", "
-                        + ", ".join(map(str, sorted(strokes[k])))
-                        + "\n"
+                    freq = str(bigrams_freqs.get(mappings[layout].decode_str(k), 0))
+                    output_lines.append(
+                        [layout, freq, k, *map(str, sorted(strokes[k]))]
                     )
+
+                for l in sorted(output_lines, key=lambda x: int(x[1]), reverse=True):
+                    output.write("\t".join(l) + "\n")
+
+                # resetting the dict for the next layout
+                shared_strokes[alias] = defaultdict(list)
 
         print(f"nstrokes/{alias}_{wpm}.txt")
     except Exception as e:
@@ -111,5 +123,5 @@ def get_strokes(wpm):
 wpms = [int(l.split(" ")[1]) for l in open("wpm_metadata.txt")]
 avg_wpm = int(sum(wpms) / len(wpms))
 
-for s_num in (100,):
+for s_num in (0,):
     get_strokes(s_num)

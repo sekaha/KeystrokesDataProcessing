@@ -1,11 +1,11 @@
 import pandas as pd
 import re
 import os
+from mapper import mappings
 
 debug = True
 
 ### Layout Mapping ###
-qwerty = "`1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>? "
 shifted_keys = 'QWERTYUIOPASDFGHJKLZXCVBNM,.<>?:"{}~!@\#$%^&*()_+|'
 
 
@@ -25,38 +25,9 @@ class key_record:
         return f"{self.char}, {self.start_time}, {self.is_correct}"
 
 
-def get_mapping(keys):
-    return {k: v for k, v in zip(keys, qwerty)}
-
-
-mappings = {
-    "azerty": get_mapping(
-        "`1234567890-=azertyuiop[]\\qsdfghjkl;'wxcvbnm,./~!@#$%^&*()_+AWERTYUIOP{}|QSDFGHJKL:\"WXCVBNM<>? "
-    ),
-    "dvorak": get_mapping(
-        "`1234567890[]',.pyfgcrl/=\\aoeuidhtns-;qjkxbmwvz~1234567890{}\"<>PYFGCRL?+|AOEUIDHTNS_:QJKXBMWVZ "
-    ),
-    "qwerty": get_mapping(qwerty),
-    "qwertz": get_mapping(
-        "`1234567890ß´qwertzuiopü+#asdfghjklöäyxcvbnm,.-~!\"§$%&/()=?`QWERTZUIOPÜ*'ASDFGHJKLÖÄYXCVBNM;_ "
-    ),  # the dataset is frankly not very descriptive of how this should look, so I based it off https://kbdlayout.info/KBDGR?arrangement=ANSI104
-}
-
-
 def print_debug(*args):
     if debug:
         print(*args)
-
-
-def normalize_string(s, layout):
-    if len(s) > 1:
-        return s
-
-    # remap char to the layout
-    if s in mappings[layout]:
-        return mappings[layout][s]
-
-    return s
 
 
 #### Typo Finder ####
@@ -186,9 +157,7 @@ def get_duration(data):
 
 def amend_key_record(correct_str, typing_record, record, layout, threshold=3):
     typed_str = "".join([a for a, b in typing_record])
-    matching_strs = get_matching_strings(
-        typed_str, "".join([normalize_string(c, layout) for c in correct_str])
-    )
+    matching_strs = get_matching_strings(typed_str, layout.map_str(correct_str))
 
     for i, (src, dst, size) in enumerate(matching_strs):
         if size >= threshold:
@@ -211,7 +180,7 @@ def is_capital_pair(i, lines, layout):
     return (
         lines[i][-2] == "SHIFT"
         and i + 1 < len(lines)
-        and normalize_string(lines[i + 1][-2], layout) in shifted_keys
+        and layout.map_key(lines[i + 1][-2]) in shifted_keys
     ) or (lines[i][-2] == "CAPS_LOCK")
 
 
@@ -219,7 +188,7 @@ def calculate_wpm(correct_chars_typed, total_duration):
     return round((correct_chars_typed / 5) / (total_duration / 60000))
 
 
-def process_typing_session(session_file, wpm_file, layout="qwerty"):
+def process_typing_session(session_file, wpm_file, layout):
     lines = [l.split("\t") for l in session_file]
     correct_string = lines[0][2]
     key_records = []
@@ -230,7 +199,7 @@ def process_typing_session(session_file, wpm_file, layout="qwerty"):
 
     for i, line in enumerate(lines):
         start_time = line[5]
-        char = normalize_string(line[-2], layout)
+        char = layout.map_key(line[-2])
 
         # backspaces are inconsistent in some files and can either represent one or more backspaces
         if len(char) > 1:
@@ -279,22 +248,20 @@ def process_typing_session(session_file, wpm_file, layout="qwerty"):
 
 
 ### Bringing it all together baby :))
-participants = pd.read_csv("metadata_participants.txt", sep="\t")
+participants = pd.read_csv("meta/metadata_participants.txt", sep="\t")
 
 
 # participants["AVG_WPM_15"] > 0
 # 168161/1825516
 with open("wpm_metadata.txt", "w") as wpm_record:
     for i, p in participants.iterrows():
-        if p["LAYOUT"] == "dvorak":
-            ID = p["PARTICIPANT_ID"]
-            layout = p["LAYOUT"]
-            participant_dir = "typingrecords/" + str(ID).zfill(6)
+        ID = p["PARTICIPANT_ID"]
+        layout = p["LAYOUT"]
+        participant_dir = "typingrecords/" + str(ID).zfill(6)
 
-            for file_name in os.listdir(participant_dir):
-                if re.match(r"(.*)\.txt", file_name).group(1).isdigit():
-                    print_debug(participant_dir + "/" + file_name)
+        for file_name in os.listdir(participant_dir):
+            if re.match(r"(.*)\.txt", file_name).group(1).isdigit():
+                print_debug(participant_dir + "/" + file_name)
 
-                    with open(participant_dir + "/" + file_name) as file:
-                        process_typing_session(file, wpm_record, layout)
-                        print(1 / 0)
+                with open(participant_dir + "/" + file_name) as file:
+                    process_typing_session(file, wpm_record, mappings[layout])
