@@ -128,6 +128,10 @@ def get_dy(bg):
     return abs(kb.get_row(bg[0]) - kb.get_row(bg[1]))
 
 
+def get_distance(bg, ex):
+    return ((get_dx(bg)) ** ex + (get_dy(bg)) ** ex) ** 0.5
+
+
 def is_scissor(bg):
     return (
         get_dy(bg) == 2
@@ -140,35 +144,37 @@ def same_finger(bg):
     return bg[0] != bg[1] and kb.get_finger(bg[0]) == kb.get_finger(bg[1])
 
 
-# scissor: with row stagger is < 2 x_dist
-print("left hand")
-print("bq", ":", get_rotation("bq"))
-print("bw", ":", get_rotation("bw"))
-print("be", ":", get_rotation("be"))
-print("br", ":", get_rotation("br"))
-print()
-print("zw", ":", get_rotation("zw"))
-print("ze", ":", get_rotation("ze"))
-print("zr", ":", get_rotation("zr"))
-print("zt", ":", get_rotation("zt"))
-print()
-print("cq", ":", get_rotation("cq"))
-print("cw", ":", get_rotation("cw"))
-print("cr", ":", get_rotation("cr"))
-print("ct", ":", get_rotation("ct"))
-print()
-print("right hand")
-print("np", ":", get_rotation("np"))
-print("no", ":", get_rotation("no"))
-print("ni", ":", get_rotation("ni"))
-print("nu", ":", get_rotation("nu"))
-print()
-print("/o", ":", get_rotation("/o"))
-print("/i", ":", get_rotation("/i"))
-print("/u", ":", get_rotation("/u"))
-print("/y", ":", get_rotation("/y"))
-print()
-print(",p", ":", get_rotation(",p"))
-print(",o", ":", get_rotation(",o"))
-print(",u", ":", get_rotation(",u"))
-print(",y", ":", get_rotation(",y"))
+def test():
+    # scissor: with row stagger is < 2 x_dist
+    print(get_dx("so"))
+    print("left hand")
+    print("bq", ":", get_rotation("bq"))
+    print("bw", ":", get_rotation("bw"))
+    print("be", ":", get_rotation("be"))
+    print("br", ":", get_rotation("br"))
+    print()
+    print("zw", ":", get_rotation("zw"))
+    print("ze", ":", get_rotation("ze"))
+    print("zr", ":", get_rotation("zr"))
+    print("zt", ":", get_rotation("zt"))
+    print()
+    print("cq", ":", get_rotation("cq"))
+    print("cw", ":", get_rotation("cw"))
+    print("cr", ":", get_rotation("cr"))
+    print("ct", ":", get_rotation("ct"))
+    print()
+    print("right hand")
+    print("np", ":", get_rotation("np"))
+    print("no", ":", get_rotation("no"))
+    print("ni", ":", get_rotation("ni"))
+    print("nu", ":", get_rotation("nu"))
+    print()
+    print("/o", ":", get_rotation("/o"))
+    print("/i", ":", get_rotation("/i"))
+    print("/u", ":", get_rotation("/u"))
+    print("/y", ":", get_rotation("/y"))
+    print()
+    print(",p", ":", get_rotation(",p"))
+    print(",o", ":", get_rotation(",o"))
+    print(",u", ":", get_rotation(",u"))
+    print(",y", ":", get_rotation(",y"))

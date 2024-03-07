@@ -22,7 +22,7 @@ if wpm == 0:
 
 plt.title(title)
 
-with open(f"nstrokes/bistrokes_{wpm}.txt") as file:
+with open(f"nstrokes/bistrokes.txt") as file:
     for l in file:
         bistroke = l[:2]
         times = list(map(int, l[3:].split(", ")))
@@ -37,9 +37,7 @@ with open(f"nstrokes/bistrokes_{wpm}.txt") as file:
             c.append(
                 "red"
                 if classifier.inwards_rotation(bistroke)
-                else "black"
-                if classifier.outwards_rotation(bistroke)
-                else "yellow"
+                else "black" if classifier.outwards_rotation(bistroke) else "yellow"
             )
             # print("".join(bistroke[::-1]))
             # if (

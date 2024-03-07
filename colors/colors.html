@@ -9,36 +9,27 @@
 <body>
     <div class="color-inputs">
         <div class="color-input-item">
-            <input type="color" id="color1">
+            <input type="color" id="color1" value="#ff0044">
         </div>
         <div class="color-input-item">
-            <input type="color" id="color2">
+            <input type="color" id="color2" value="#1133f0">
+        </div>
+        <div class="color-input-item">
+            <input type="color" id="color3" value="#ff1111">
         </div>
         <div class="palette-count">
-            <select id="palette-count-input">
-                <option value="2" selected>2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-                <option value="13">13</option>
-                <option value="14">14</option>
-                <option value="15">15</option>
-                <option value="16">16</option>
-                <option value="32">32</option>
-                <option value="64">64</option>
-            </select>
+            <input type="number" id="palette-count-input" name="quantity" min="2" max="99" value="5">
+        </div>
+        <div class="saturation-boost">
+            <input id="saturation-boost" type="range" min="0" max="200" value="100">
         </div>
         <div class="palette-type">
             <select id="palette-type">
-                <option value="sequential" selected>Sequential</option>
-                <option value="diverging" selected>Diverging</option>
+                <option value="sequential_direct" selected>Sequential Direct</option>
+                <option value="sequential_hue">Sequential Hue</option>
+                <option value="bezier_direct">Bezier Direct</option>
+                <option value="bezier_hue">Bezier Hue</option>
+                <option value="diverging">Diverging</option>
                 <!--<option value="triad">Triad</option>-->
                 <option value="spectrum">Spectrum</option>
             </select>

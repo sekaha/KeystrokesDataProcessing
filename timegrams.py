@@ -59,7 +59,7 @@ def process_window(file, size, skip, wpm, strokes, layout):
 
 def process_data_type(alias, size, skip, wpm, shared_strokes):
     try:
-        with open(f"nstrokes/{alias}_{wpm}.txt", "w") as output:
+        with open(f"nstrokes/{alias}.txt", "w") as output:
             for layout in ("azerty", "dvorak", "qwerty", "qwertz"):
                 strokes = shared_strokes[alias]
                 participants = pd.read_csv("meta/metadata_participants.txt", sep="\t")
@@ -95,16 +95,16 @@ def process_data_type(alias, size, skip, wpm, shared_strokes):
                 for k in sorted(strokes.keys()):
                     freq = str(bigrams_freqs.get(mappings[layout].decode_str(k), 0))
                     output_lines.append(
-                        [layout, freq, k, *map(str, sorted(strokes[k]))]
+                        [layout, k, freq, *map(str, sorted(strokes[k]))]
                     )
 
-                for l in sorted(output_lines, key=lambda x: int(x[1]), reverse=True):
+                for l in sorted(output_lines, key=lambda x: int(x[2]), reverse=True):
                     output.write("\t".join(l) + "\n")
 
                 # resetting the dict for the next layout
                 shared_strokes[alias] = defaultdict(list)
 
-        print(f"nstrokes/{alias}_{wpm}.txt")
+        print(f"nstrokes/{alias}.txt")
     except Exception as e:
         print(e)
 
