@@ -128,7 +128,10 @@ function generateDiverging(col1, col2, paletteCount) {
     let new_col2_light = chroma.oklch(brightness + bright_diff, sat + sat_diff, h2);
 
     const colors = chroma.scale([new_col1_dark, new_col1_light, new_col2_dark]).mode("oklch").colors(paletteCount);
-    console.log(colors)
+
+    color_strings = colors.map(s => "\'" + chroma(s).hex().replace(/^#/, "#") + "\'")
+    console.log("[" + color_strings.join(", ") + "]");
+
     return colors;
 }
 
