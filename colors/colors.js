@@ -21,7 +21,7 @@ function run() {
 
 function gen() {
     const generatorFunctions = {
-        "sequential_direct": darkToLight,
+        "sequential_direct": generateSequential,
         "sequential_hue": generateSequentialHue,
         "bezier_direct": generateBezier,
         "bezier_hue": generateBezierHue,
@@ -75,7 +75,7 @@ function generateEquidistance(col, splits, blindnessMode, degrees = 360) {
 
 function generateSequential(cols, paletteCount) {
     console.log(cols);
-    const colors = chroma.scale(cols).mode("oklab").colors(paletteCount);
+    const colors = chroma.scale(cols).mode("oklab").colors(paletteCount - 2);
 
     color_strings = colors.map(s => "\'" + s.replace(/^#/, "#") + "\'")
     console.log("[" + color_strings.join(", ") + "]");
