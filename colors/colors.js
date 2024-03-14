@@ -75,7 +75,7 @@ function generateEquidistance(col, splits, blindnessMode, degrees = 360) {
 
 function generateSequential(cols, paletteCount) {
     console.log(cols);
-    const colors = chroma.scale(cols).mode("oklab").colors(paletteCount - 2);
+    const colors = chroma.scale(cols).mode("oklab").colors(paletteCount);
 
     color_strings = colors.map(s => "\'" + s.replace(/^#/, "#") + "\'")
     console.log("[" + color_strings.join(", ") + "]");
