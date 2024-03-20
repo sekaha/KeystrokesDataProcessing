@@ -1,8 +1,9 @@
 from math import atan2, degrees
+from random import randint
 
 
 class keyboard:
-    def __init__(self):
+    def __init__(self, layout=["qwertyuiop", "asdfghjkl;", "zxcvbnm,./"]):
         self.row_offsets = [-0.25, 0, 0.5]
 
         self.x_to_finger = {
@@ -18,16 +19,48 @@ class keyboard:
             -5: "rp",
         }
 
-        kb = ["qwertyuiop", "asdfghjkl;", "zxcvbnm,./"]
         self.key_to_pos = {}
 
-        for y, row in enumerate(kb):
+        for y, row in enumerate(layout):
             for x, c in enumerate(row):
                 new_x = x - 5 if x < 5 else x - 4
 
                 self.key_to_pos[c] = (new_x, 3 - y)
 
         self.pos_to_key = dict(zip(self.key_to_pos.values(), self.key_to_pos.keys()))
+
+        print(self.pos_to_key)
+
+    def __repr__(self):
+        rows = [list(self.pos_to_key.values())[i : i + 10] for i in range(0, 30, 10)]
+        return "\n".join([" ".join(row) for row in rows])
+
+    def unswap(self):
+        pass
+
+    def swap(self):
+        pair = random.sample(alphabet, 2)
+        y1 = y2 = 0
+        x1 = x2 = 0
+
+        while y1 == y2:
+            y1, y2 = randint(1, 3), randint(1, 3)
+
+        while x1 == x2:
+            x1 = randint(1, 5) * (1 - randint(0, 1) * 2)
+            x2 = randint(1, 5) * (1 - randint(0, 1) * 2)
+
+        k1, k2 = self.get_key(x1, y1), self.get_key(x2, y2)
+
+        self.key_to_pos[k1] = (x2, y2)
+        self.key_to_pos[k2] = (x1, y1)
+        self.pos_to_key[(x1, y1)] = k2
+        self.pos_to_key[(x2, y2)] = k1
+
+        print("swapped", k1, k2)
+
+    def get_key(self, x, y):
+        return self.pos_to_key[(x, y)]
 
     def get_pos(self, k):
         return self.key_to_pos[k]
@@ -45,136 +78,142 @@ class keyboard:
         return abs(self.key_to_pos[k][0]) / self.key_to_pos[k][0]
 
 
-kb = keyboard()
+class classifier:
+    def __init__(self, keyboard):
+        self.kb = keyboard
 
+    def same_col(self, bg):
+        return self.kb.get_col(bg[0]) == self.kb.get_col(bg[1])
 
-def same_col(bg):
-    return kb.get_col(bg[0]) == kb.get_col(bg[1])
+    def same_hand(self, bg):
+        return self.kb.get_hand(bg[0]) == self.kb.get_hand(bg[1])
 
+    def inwards_rotation(self, bg):
+        if self.same_hand(bg):
+            if abs(self.kb.get_col(bg[0])) < abs(self.kb.get_col(bg[1])):
+                outer, inner = bg[1], bg[0]
+            elif abs(self.kb.get_col(bg[0])) > abs(self.kb.get_col(bg[1])):
+                outer, inner = bg[0], bg[1]
+            else:
+                return False
 
-def same_hand(bg):
-    return kb.get_hand(bg[0]) == kb.get_hand(bg[1])
+            if self.kb.get_row(outer) > self.kb.get_row(inner):
+                return True
 
+        return False
 
-def inwards_rotation(bg):
-    if same_hand(bg):
-        if abs(kb.get_col(bg[0])) < abs(kb.get_col(bg[1])):
-            outer, inner = bg[1], bg[0]
-        elif abs(kb.get_col(bg[0])) > abs(kb.get_col(bg[1])):
-            outer, inner = bg[0], bg[1]
-        else:
-            return False
+    def get_rotation(self, bg):
+        outer, inner = bg[1], bg[0]
 
-        if kb.get_row(outer) > kb.get_row(inner):
-            return True
+        if self.same_hand(bg):
+            if abs(self.kb.get_col(bg[0])) < abs(self.kb.get_col(bg[1])):
+                outer, inner = bg[1], bg[0]
+            elif abs(self.kb.get_col(bg[0])) > abs(self.kb.get_col(bg[1])):
+                outer, inner = bg[0], bg[1]
+            else:
+                return None
 
-    return False
+            x1, y1 = self.kb.get_pos(outer)
+            x2, y2 = self.kb.get_pos(inner)
 
-
-def get_rotation(bg):
-    outer, inner = bg[1], bg[0]
-
-    if same_hand(bg):
-        if abs(kb.get_col(bg[0])) < abs(kb.get_col(bg[1])):
-            outer, inner = bg[1], bg[0]
-        elif abs(kb.get_col(bg[0])) > abs(kb.get_col(bg[1])):
-            outer, inner = bg[0], bg[1]
-        else:
-            return None
-
-        x1, y1 = kb.get_pos(outer)
-        x2, y2 = kb.get_pos(inner)
-
-        return round(
-            degrees(
-                atan2(
-                    (y1 - y2),
-                    ((x1 + kb.row_offsets[3 - y1]) - (x2 + kb.row_offsets[3 - y2]))
-                    * kb.get_hand(bg[0]),
+            return round(
+                degrees(
+                    atan2(
+                        (y1 - y2),
+                        (
+                            (x1 + self.kb.row_offsets[3 - y1])
+                            - (x2 + self.kb.row_offsets[3 - y2])
+                        )
+                        * self.kb.get_hand(bg[0]),
+                    )
                 )
             )
+
+        return None
+
+    def outwards_rotation(self, bg):
+        if self.same_hand(bg):
+            if abs(self.kb.get_col(bg[0])) < abs(self.kb.get_col(bg[1])):
+                outer, inner = bg[1], bg[0]
+            elif abs(self.kb.get_col(bg[0])) > abs(self.kb.get_col(bg[1])):
+                outer, inner = bg[0], bg[1]
+            else:
+                return False
+
+            if self.kb.get_row(outer) < self.kb.get_row(inner):
+                return True
+
+        return False
+
+    def is_adjacent(self, bg):
+        return abs(self.kb.get_col(bg[0]) - self.kb.get_col(bg[1])) == 1
+
+    def get_dx(self, bg):
+        x1, y1 = self.kb.get_pos(bg[0])
+        x2, y2 = self.kb.get_pos(bg[1])
+
+        return abs(
+            (x1 + self.kb.row_offsets[3 - y1]) - (x2 + self.kb.row_offsets[3 - y2])
         )
 
-    return None
+    def get_dy(self, bg):
+        return abs(self.kb.get_row(bg[0]) - self.kb.get_row(bg[1]))
+
+    def get_distance(self, bg, ex):
+        return ((self.get_dx(bg)) ** ex + (self.get_dy(bg)) ** ex) ** 0.5
+
+    def is_scissor(self, bg):
+        return (
+            self.get_dy(bg) == 2
+            and not self.same_finger(bg)
+            and self.kb.get_hand(bg[0]) == self.kb.get_hand(bg[1])
+        )  # get_dx(bg) < 2 and get_dy(bg) == 2 and not same_finger(bg)
+
+    def same_finger(self, bg):
+        return bg[0] != bg[1] and self.kb.get_finger(bg[0]) == self.kb.get_finger(bg[1])
 
 
-def outwards_rotation(bg):
-    if same_hand(bg):
-        if abs(kb.get_col(bg[0])) < abs(kb.get_col(bg[1])):
-            outer, inner = bg[1], bg[0]
-        elif abs(kb.get_col(bg[0])) > abs(kb.get_col(bg[1])):
-            outer, inner = bg[0], bg[1]
-        else:
-            return False
-
-        if kb.get_row(outer) < kb.get_row(inner):
-            return True
-
-    return False
+kb = keyboard()
+c = classifier(kb)
 
 
-def is_adjacent(bg):
-    return abs(kb.get_col(bg[0]) - kb.get_col(bg[1])) == 1
-
-
-def get_dx(bg):
-    x1, y1 = kb.get_pos(bg[0])
-    x2, y2 = kb.get_pos(bg[1])
-
-    return abs((x1 + kb.row_offsets[3 - y1]) - (x2 + kb.row_offsets[3 - y2]))
-
-
-def get_dy(bg):
-    return abs(kb.get_row(bg[0]) - kb.get_row(bg[1]))
-
-
-def get_distance(bg, ex):
-    return ((get_dx(bg)) ** ex + (get_dy(bg)) ** ex) ** 0.5
-
-
-def is_scissor(bg):
-    return (
-        get_dy(bg) == 2
-        and not same_finger(bg)
-        and kb.get_hand(bg[0]) == kb.get_hand(bg[1])
-    )  # get_dx(bg) < 2 and get_dy(bg) == 2 and not same_finger(bg)
-
-
-def same_finger(bg):
-    return bg[0] != bg[1] and kb.get_finger(bg[0]) == kb.get_finger(bg[1])
+for _ in range(100):
+    kb.swap()
+    print()
+    print(kb)
 
 
 def test():
     # scissor: with row stagger is < 2 x_dist
-    print(get_dx("so"))
+    print(c.get_dx("so"))
     print("left hand")
-    print("bq", ":", get_rotation("bq"))
-    print("bw", ":", get_rotation("bw"))
-    print("be", ":", get_rotation("be"))
-    print("br", ":", get_rotation("br"))
+    print("bq", ":", c.get_rotation("bq"))
+    print("bw", ":", c.get_rotation("bw"))
+    print("be", ":", c.get_rotation("be"))
+    print("br", ":", c.get_rotation("br"))
     print()
-    print("zw", ":", get_rotation("zw"))
-    print("ze", ":", get_rotation("ze"))
-    print("zr", ":", get_rotation("zr"))
-    print("zt", ":", get_rotation("zt"))
+    print("zw", ":", c.get_rotation("zw"))
+    print("ze", ":", c.get_rotation("ze"))
+    print("zr", ":", c.get_rotation("zr"))
+    print("zt", ":", c.get_rotation("zt"))
     print()
-    print("cq", ":", get_rotation("cq"))
-    print("cw", ":", get_rotation("cw"))
-    print("cr", ":", get_rotation("cr"))
-    print("ct", ":", get_rotation("ct"))
+    print("cq", ":", c.get_rotation("cq"))
+    print("cw", ":", c.get_rotation("cw"))
+    print("cr", ":", c.get_rotation("cr"))
+    print("ct", ":", c.get_rotation("ct"))
     print()
     print("right hand")
-    print("np", ":", get_rotation("np"))
-    print("no", ":", get_rotation("no"))
-    print("ni", ":", get_rotation("ni"))
-    print("nu", ":", get_rotation("nu"))
+    print("np", ":", c.get_rotation("np"))
+    print("no", ":", c.get_rotation("no"))
+    print("ni", ":", c.get_rotation("ni"))
+    print("nu", ":", c.get_rotation("nu"))
     print()
-    print("/o", ":", get_rotation("/o"))
-    print("/i", ":", get_rotation("/i"))
-    print("/u", ":", get_rotation("/u"))
-    print("/y", ":", get_rotation("/y"))
+    print("/o", ":", c.get_rotation("/o"))
+    print("/i", ":", c.get_rotation("/i"))
+    print("/u", ":", c.get_rotation("/u"))
+    print("/y", ":", c.get_rotation("/y"))
     print()
-    print(",p", ":", get_rotation(",p"))
-    print(",o", ":", get_rotation(",o"))
-    print(",u", ":", get_rotation(",u"))
-    print(",y", ":", get_rotation(",y"))
+    print(",p", ":", c.get_rotation(",p"))
+    print(",o", ":", c.get_rotation(",o"))
+    print(",u", ":", c.get_rotation(",u"))
+    print(",y", ":", c.get_rotation(",y"))
