@@ -5,8 +5,6 @@ from random import shuffle
 
 with open("ngrams/bigrams.txt") as f:
     freqs = {a: int(b) for l in f for a, b in [l.strip().split("\t")]}
-    # print([a for l in f for a in [l.strip().split("\t")]])
-    # print([l.strip().split("\t") for l in f])
 
 with open("ngrams/bigrams.txt") as f:
     total_chars = sum(
@@ -22,8 +20,6 @@ with open("ngrams/bigrams.txt") as f:
         ]
     )
 
-print(total_chars)
-
 
 class optimizer:
     def __init__(self):
@@ -33,28 +29,31 @@ class optimizer:
         self.classifier = classifier(self.keyboard)
         self.bg_scores = {bg: 0 for bg in self.keyboard.get_ngrams(2)}
         self.new_bg_scores = {}
-
         self.fitness = 0
+        self.prev_fitness = 0
+
         self.get_fitness()
         self.accept()
-
         self.temp = self.get_initial_temperature(0.8, 0.01)
-
+        self.get_fitness()
+        self.accept()
         self.stopping_point = self.get_stopping_point()
 
     def accept(self):
         self.bg_scores.update(self.new_bg_scores)
 
     def reject(self):
+        self.keyboard.undo_swap()
+        self.fitness = self.prev_fitness
         self.new_bg_scores = {}
 
     def get_initial_temperature(self, x0, epsilon):
         # An initial guess for t1
-        tn = 100_000_000_0000
+        tn = 500_000_000_000
         acceptance_probability = 0
 
+        # Repeat guess
         while abs(acceptance_probability - x0) > epsilon:
-            eafter = self.fitness
             numerator, denominator = [], []
 
             # test all possible swaps
@@ -73,36 +72,20 @@ class optimizer:
 
                     # Keep track of transition energies for each positive transition
                     if delta > 0:
-                        # print("positive")
-                        ebefore = prev_fitness
-                        eafter = self.fitness
+                        numerator.append(self.fitness)
+                        denominator.append(prev_fitness)
 
-                        numerator.append(eafter)
-                        denominator.append(ebefore)
-
-                        # print("positive")
-                    else:
-                        pass
-                        # print("negative")
-
-                    self.keyboard.undo_swap()
                     self.reject()
 
             # Calculate acceptance probability
-
-            # print(numerator)
-            # print(denominator)
             top = [exp(-(e_after / tn)) for e_after in numerator]
             bottom = [exp(-(e_before / tn)) for e_before in denominator]
 
-            print("top", top)
-            print("bottom", bottom)
             acceptance_probability = sum(top) / sum(bottom)
 
             tn = tn * (log(acceptance_probability) / log(x0))
-            print("AP", acceptance_probability)
-            print("TEMP", tn)
-        # while (p0-x0 < )
+            # print("AP", acceptance_probability)
+            # print("TEMP", tn)
 
     def cool(self):
         self.temp *= 0.99
@@ -115,20 +98,16 @@ class optimizer:
         return ceil(swaps * (log(swaps) + euler_mascheroni) + 0.5)
 
     def get_fitness(self):
-        # bgs = self.keyboard.get_ngrams(2)
+        self.prev_fitness = self.fitness
+        bgs = self.keyboard.get_ngrams(2)
 
-        bgs = [
-            bg
-            for bg in reversed(freqs.keys())
-            if all([c in "qwertyuiopasdfghjkl;zxcvbmn,./" for c in bg])
-        ]
+        # bgs = [
+        #     bg
+        #     for bg in reversed(freqs.keys())
+        #     if all([c in "qwertyuiopasdfghjkl;zxcvbmn,./" for c in bg])
+        # ]
 
         for bg in bgs:
-            # freq, is_sfb, same_hand = features[0], features[9], features[13]
-            # bottom1, home1, top1, bottom2, home2, top2 = features[14:20]
-            # is_pinky1, is_ring1, is_middle1, is_index1 = features[1:5]
-            # is_pinky2, is_ring2, is_middle2, is_index2 = features[5:9]
-
             freq = max(277.286496350365, freqs.get(bg, 0))
 
             features = (
@@ -159,12 +138,11 @@ class optimizer:
             predicted_time = self.predict_time(features)
 
             self.new_bg_scores[bg] = predicted_time * freq
-            # print(self.new_bg_scores[bg])
             delta = self.new_bg_scores[bg] - self.bg_scores[bg]
 
             self.fitness += delta
 
-            # Erm.... aaahhhh
+        # Erm.... aaahhhh
 
     def optimize(self):
         self.keyboard.swap()
@@ -312,6 +290,6 @@ class optimizer:
 
 o = optimizer()
 
-print(o.fitness)
-print(total_chars)
+print("Fitness", int(o.fitness))
+print("Chars", total_chars)
 print("WPM", (total_chars / 5) / ((o.fitness) / 60 / 1000))

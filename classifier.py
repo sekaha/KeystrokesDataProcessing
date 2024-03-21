@@ -51,8 +51,7 @@ class keyboard:
         self.swap(*self.swap_pair)
 
     def random_swap(self):
-        self.swap_pair = sample(self.chars, 2)
-        self.swap(*self.swap_pair)
+        self.swap(*sample(self.chars, 2))
 
     def swap(self, k1, k2):
         self.swap_pair = (k1, k2)
