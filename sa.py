@@ -1,7 +1,7 @@
 import numpy as np
 from classifier import classifier, keyboard
 from math import ceil, exp, log
-from random import shuffle
+from random import shuffle, random
 
 with open("ngrams/bigrams.txt") as f:
     freqs = {a: int(b) for l in f for a, b in [l.strip().split("\t")]}
@@ -25,12 +25,13 @@ class optimizer:
     def __init__(self):
         self.t0 = 0
         self.cooling_schedule = "default"
-        self.keyboard = keyboard()
+        self.keyboard = keyboard(["qwertyuiop", "asdfghjkl'", "zxcvbmn,.-"])
         self.classifier = classifier(self.keyboard)
         self.bg_scores = {bg: 0 for bg in self.keyboard.get_ngrams(2)}
         self.new_bg_scores = {}
         self.fitness = 0
         self.prev_fitness = 0
+        self.a = 0.99
 
         self.get_fitness()
         self.accept()
@@ -74,11 +75,11 @@ class optimizer:
             ) / (len(energies) * exp(-(self.prev_fitness / tn)))
 
             tn = tn * (log(acceptance_probability) / log(x0))
-            # print("AP", acceptance_probability)
-            # print("TEMP", tn)
+
+        return tn
 
     def cool(self):
-        self.temp *= 0.99
+        self.temp *= self.a
 
     # Calculate a stopping time for the annealing process based on the number of swaps (coupon collector's problem).
     def get_stopping_point(self):
@@ -90,12 +91,6 @@ class optimizer:
     def get_fitness(self):
         self.prev_fitness = self.fitness
         bgs = self.keyboard.get_ngrams(2)
-
-        # bgs = [
-        #     bg
-        #     for bg in reversed(freqs.keys())
-        #     if all([c in "qwertyuiopasdfghjkl;zxcvbmn,./" for c in bg])
-        # ]
 
         for bg in bgs:
             freq = max(277.286496350365, freqs.get(bg, 0))
@@ -132,16 +127,27 @@ class optimizer:
 
             self.fitness += delta
 
-        # Erm.... aaahhhh
-
     def optimize(self):
-        i = 0
+        stays = 0
 
-        while i < self.stopping_point:
+        while stays < self.stopping_point:
+            # markov chain
+            for _ in range(30):
+                self.keyboard.random_swap()
+                self.get_fitness()
+                delta = self.fitness - self.prev_fitness
 
-            self.keyboard.random_swap()
+                # Metropolis criterion
+                if delta < 0 or (delta > 0 and random() < exp(-delta / self.temp)):
+                    self.accept()
+                    stays = 0
+                else:
+                    self.reject()
+                    stays += 1
 
-        self.keyboard.swap()
+            self.cool()
+            print(self.fitness)
+            print(self.keyboard)
 
     def predict_time(self, features):
         p = [
@@ -289,3 +295,5 @@ o = optimizer()
 print("Fitness", int(o.fitness))
 print("Chars", total_chars)
 print("WPM", (total_chars / 5) / ((o.fitness) / 60 / 1000))
+
+o.optimize()
