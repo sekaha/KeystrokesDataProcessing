@@ -55,11 +55,8 @@ class optimizer:
             energies = []
 
             # test all possible swaps
-            count = 0
-
             for i, k1 in enumerate(self.keyboard.chars[:-1]):
                 for k2 in self.keyboard.chars[i + 1 :]:
-                    count += 1
                     self.keyboard.swap(k1, k2)
                     self.get_fitness()
 
