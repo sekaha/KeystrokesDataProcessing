@@ -1,26 +1,10 @@
-from itertools import product
+chars = "qwertyuiopasdfghjkl;zxcvbnm,./"
+count = 0
 
-print(
-    len(
-        [
-            combo
-            for swap in "ab"
-            for combo in product("qwertyuiopasdfghjkl;zxcvbnm,./", repeat=2)
-            if swap in combo
-        ]
-    )
-)
+# test all possible swaps
+for i, k1 in enumerate(chars):
+    for k2 in chars[i + 1 :]:
+        print(k1 + k2)
+        count += 1
 
-
-print(
-    len(
-        set(
-            [
-                combo
-                for swap in "ab"
-                for combo in product("qwertyuiopasdfghjkl;zxcvbnm,./", repeat=2)
-                if swap in combo
-            ]
-        )
-    )
-)
+print(count)

@@ -55,6 +55,7 @@ class keyboard:
         self.swap(*self.swap_pair)
 
     def swap(self, k1, k2):
+        self.swap_pair = (k1, k2)
         x1, y1 = self.key_to_pos[k1]
         x2, y2 = self.key_to_pos[k2]
 

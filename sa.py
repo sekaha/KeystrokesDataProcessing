@@ -1,6 +1,7 @@
 import numpy as np
 from classifier import classifier, keyboard
 from math import ceil, exp, log
+from random import shuffle
 
 with open("ngrams/bigrams.txt") as f:
     freqs = {a: int(b) for l in f for a, b in [l.strip().split("\t")]}
@@ -26,8 +27,7 @@ print(total_chars)
 
 class optimizer:
     def __init__(self):
-        p0 = 0.9
-        self.temp = self.get_initial_temperature(p0)
+        self.t0 = 0
         self.cooling_schedule = "default"
         self.keyboard = keyboard()
         self.classifier = classifier(self.keyboard)
@@ -35,15 +35,73 @@ class optimizer:
         self.new_bg_scores = {}
 
         self.fitness = 0
-        self.get_fitness(0.8, 0.01)
+        self.get_fitness()
+        self.accept()
+
+        self.temp = self.get_initial_temperature(0.8, 0.01)
 
         self.stopping_point = self.get_stopping_point()
 
-    def get_initial_temperature(self, p0, epsilon):
-        def calc_acceptance_probability():
-            ebefore = 0
-            eafter = 0
+    def accept(self):
+        self.bg_scores.update(self.new_bg_scores)
 
+    def reject(self):
+        self.new_bg_scores = {}
+
+    def get_initial_temperature(self, x0, epsilon):
+        # An initial guess for t1
+        tn = 100_000_000_0000
+        acceptance_probability = 0
+
+        while abs(acceptance_probability - x0) > epsilon:
+            eafter = self.fitness
+            numerator, denominator = [], []
+
+            # test all possible swaps
+            prev_fitness = self.fitness
+            char_permutation = list(self.keyboard.chars)
+            shuffle(char_permutation)
+            count = 0
+
+            for i, k1 in enumerate(char_permutation[:-1]):
+                for k2 in char_permutation[i + 1 :]:
+                    count += 1
+                    self.keyboard.swap(k1, k2)
+                    self.get_fitness()
+
+                    delta = self.fitness - prev_fitness
+
+                    # Keep track of transition energies for each positive transition
+                    if delta > 0:
+                        # print("positive")
+                        ebefore = prev_fitness
+                        eafter = self.fitness
+
+                        numerator.append(eafter)
+                        denominator.append(ebefore)
+
+                        # print("positive")
+                    else:
+                        pass
+                        # print("negative")
+
+                    self.keyboard.undo_swap()
+                    self.reject()
+
+            # Calculate acceptance probability
+
+            # print(numerator)
+            # print(denominator)
+            top = [exp(-(e_after / tn)) for e_after in numerator]
+            bottom = [exp(-(e_before / tn)) for e_before in denominator]
+
+            print("top", top)
+            print("bottom", bottom)
+            acceptance_probability = sum(top) / sum(bottom)
+
+            tn = tn * (log(acceptance_probability) / log(x0))
+            print("AP", acceptance_probability)
+            print("TEMP", tn)
         # while (p0-x0 < )
 
     def cool(self):
@@ -105,6 +163,8 @@ class optimizer:
             delta = self.new_bg_scores[bg] - self.bg_scores[bg]
 
             self.fitness += delta
+
+            # Erm.... aaahhhh
 
     def optimize(self):
         self.keyboard.swap()
