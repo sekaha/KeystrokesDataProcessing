@@ -1,10 +1,14 @@
 from math import atan2, degrees
-from random import randint
+from random import randint, sample
+from itertools import product
 
 
 class keyboard:
     def __init__(self, layout=["qwertyuiop", "asdfghjkl;", "zxcvbnm,./"]):
         self.row_offsets = [-0.25, 0, 0.5]
+        self.chars = "".join(layout)
+        self.swap_pair = ["", ""]
+        self.key_count = 30
 
         self.x_to_finger = {
             5: "lp",
@@ -35,29 +39,29 @@ class keyboard:
         rows = [list(self.pos_to_key.values())[i : i + 10] for i in range(0, 30, 10)]
         return "\n".join([" ".join(row) for row in rows])
 
-    def unswap(self):
-        pass
+    def get_ngrams(self, n):
+        return set(
+            "".join(combo)
+            for swap in self.swap_pair
+            for combo in product(self.chars, repeat=n)
+            if swap in combo or swap == ""
+        )
 
-    def swap(self):
-        pair = random.sample(alphabet, 2)
-        y1 = y2 = 0
-        x1 = x2 = 0
+    def undo_swap(self):
+        self.swap(*self.swap_pair)
 
-        while y1 == y2:
-            y1, y2 = randint(1, 3), randint(1, 3)
+    def random_swap(self):
+        self.swap_pair = sample(self.chars, 2)
+        self.swap(*self.swap_pair)
 
-        while x1 == x2:
-            x1 = randint(1, 5) * (1 - randint(0, 1) * 2)
-            x2 = randint(1, 5) * (1 - randint(0, 1) * 2)
-
-        k1, k2 = self.get_key(x1, y1), self.get_key(x2, y2)
+    def swap(self, k1, k2):
+        x1, y1 = self.key_to_pos[k1]
+        x2, y2 = self.key_to_pos[k2]
 
         self.key_to_pos[k1] = (x2, y2)
         self.key_to_pos[k2] = (x1, y1)
         self.pos_to_key[(x1, y1)] = k2
         self.pos_to_key[(x2, y2)] = k1
-
-        print("swapped", k1, k2)
 
     def get_key(self, x, y):
         return self.pos_to_key[(x, y)]
@@ -81,6 +85,27 @@ class keyboard:
 class classifier:
     def __init__(self, keyboard):
         self.kb = keyboard
+
+    def is_pinky(self, k):
+        return abs(self.kb.get_pos(k)[0]) == 5
+
+    def is_ring(self, k):
+        return abs(self.kb.get_pos(k)[0]) == 4
+
+    def is_middle(self, k):
+        return abs(self.kb.get_pos(k)[0]) == 3
+
+    def is_bottom(self, k):
+        return abs(self.kb.get_pos(k)[1]) == 1
+
+    def is_homerow(self, k):
+        return abs(self.kb.get_pos(k)[1]) == 2
+
+    def is_top(self, k):
+        return abs(self.kb.get_pos(k)[1]) == 3
+
+    def is_index(self, k):
+        return abs(self.kb.get_pos(k)[0]) in (2, 1)
 
     def same_col(self, bg):
         return self.kb.get_col(bg[0]) == self.kb.get_col(bg[1])
@@ -177,13 +202,14 @@ kb = keyboard()
 c = classifier(kb)
 
 
-for _ in range(100):
-    kb.swap()
-    print()
-    print(kb)
-
-
 def test():
+    for _ in range(5):
+        kb.swap()
+        print(kb)
+        print()
+        kb.unswap()
+        print(kb)
+
     # scissor: with row stagger is < 2 x_dist
     print(c.get_dx("so"))
     print("left hand")
