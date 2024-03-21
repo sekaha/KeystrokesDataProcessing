@@ -35,8 +35,6 @@ class optimizer:
         self.get_fitness()
         self.accept()
         self.temp = self.get_initial_temperature(0.8, 0.01)
-        self.get_fitness()
-        self.accept()
         self.stopping_point = self.get_stopping_point()
 
     def accept(self):
@@ -54,34 +52,29 @@ class optimizer:
 
         # Repeat guess
         while abs(acceptance_probability - x0) > epsilon:
-            numerator, denominator = [], []
+            energies = []
 
             # test all possible swaps
-            prev_fitness = self.fitness
-            char_permutation = list(self.keyboard.chars)
-            shuffle(char_permutation)
             count = 0
 
-            for i, k1 in enumerate(char_permutation[:-1]):
-                for k2 in char_permutation[i + 1 :]:
+            for i, k1 in enumerate(self.keyboard.chars[:-1]):
+                for k2 in self.keyboard.chars[i + 1 :]:
                     count += 1
                     self.keyboard.swap(k1, k2)
                     self.get_fitness()
 
-                    delta = self.fitness - prev_fitness
+                    delta = self.fitness - self.prev_fitness
 
                     # Keep track of transition energies for each positive transition
                     if delta > 0:
-                        numerator.append(self.fitness)
-                        denominator.append(prev_fitness)
+                        energies.append(self.fitness)
 
                     self.reject()
 
             # Calculate acceptance probability
-            top = [exp(-(e_after / tn)) for e_after in numerator]
-            bottom = [exp(-(e_before / tn)) for e_before in denominator]
-
-            acceptance_probability = sum(top) / sum(bottom)
+            acceptance_probability = sum(
+                [exp(-(e_after / tn)) for e_after in energies]
+            ) / (len(energies) * exp(-(self.prev_fitness / tn)))
 
             tn = tn * (log(acceptance_probability) / log(x0))
             # print("AP", acceptance_probability)
@@ -145,6 +138,12 @@ class optimizer:
         # Erm.... aaahhhh
 
     def optimize(self):
+        i = 0
+
+        while i < self.stopping_point:
+
+            self.keyboard.random_swap()
+
         self.keyboard.swap()
 
     def predict_time(self, features):
