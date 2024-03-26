@@ -30,7 +30,7 @@ class mapper:
 # the dataset is frankly not very descriptive of how qwertz should look, so I based it off https://kbdlayout.info/KBDGR?arrangement=ANSI104
 mappings = {
     "azerty": mapper(
-        "`1234567890-=azertyuiop[]\\qsdfghjkl;'wxcvbnm,./~!@#$%^&*()_+AWERTYUIOP{}|QSDFGHJKL:\"WXCVBNM<>?"
+        "`1234567890-=azertyuiop[]\\qsdfghjkl;'wxcvbnm,./~!@#$%^&*()_+AZERTYUIOP{}|QSDFGHJKL:\"WXCVBNM<>?"
     ),
     "dvorak": mapper(
         "`1234567890[]',.pyfgcrl/=\\aoeuidhtns-;qjkxbmwvz~1234567890{}\"<>PYFGCRL?+|AOEUIDHTNS_:QJKXBMWVZ"
@@ -39,6 +39,6 @@ mappings = {
         "`1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?"
     ),
     "qwertz": mapper(
-        "`1234567890ß´qwertzuiopü+#asdfghjklöäyxcvbnm,.-~!\"§$%&/()=?`QWERTZUIOPÜ*'ASDFGHJKLÖÄYXCVBNM;_"
+        "`1234567890ß´qwertzuiopü+#asdfghjklöäyxcvbnm,.-~!\"§$%&/()=?`QWERTZUIOPÜ*'ASDFGHJKLÖÄYXCVBNM;:_"
     ),
 }

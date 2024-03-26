@@ -25,7 +25,7 @@ class optimizer:
     def __init__(self):
         self.t0 = 0
         self.cooling_schedule = "default"
-        self.keyboard = keyboard(["qwertyuiop", "asdfghjkl'", "zxcvbmn,.-"])
+        self.keyboard = keyboard()  # ["qwertyuiop", "asdfghjkl'", "zxcvbmn,.-"])
         self.classifier = classifier(self.keyboard)
         self.bg_scores = {bg: 0 for bg in self.keyboard.get_ngrams(2)}
         self.new_bg_scores = {}
@@ -290,10 +290,21 @@ class optimizer:
         return (same_hand_weight + sfb_weight + alt_weight + base_pen) * freq_pen
 
 
-o = optimizer()
+best_keeb = None
+best_score = float("inf")
 
-print("Fitness", int(o.fitness))
-print("Chars", total_chars)
-print("WPM", (total_chars / 5) / ((o.fitness) / 60 / 1000))
+for _ in range(10):
+    o = optimizer()
+    o.optimize()
 
-o.optimize()
+    print("Fitness", int(o.fitness))
+    print("Chars", total_chars)
+    print("WPM", (total_chars / 5) / ((o.fitness) / 60 / 1000))
+
+    if o.fitness < best_score:
+        best_score = o.fitness
+        print("new best")
+        best_keeb = o.keyboard
+
+print("best score")
+print(best_keeb)

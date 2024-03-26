@@ -22,9 +22,9 @@ session_wpms = dict(map(lambda x: map(int, x.split(" ")), [l for l in f]))
 f.close()
 
 DATA_TYPES = {
-    "bistrokes": (2, 0),
-    # "tristrokes": (3, 0),
-    # "1-skip": (2, 1),
+    # "bistrokes": (2, 0),
+    "tristrokes": (3, 0),
+    "1-skip": (2, 1),
 }
 
 valid_chars = set("qwertyuiopasdfghjkl;zxcvbnm,./QWERTYUIOPASDFGHJKL:ZXCVBNM<>?")

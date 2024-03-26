@@ -4,11 +4,16 @@ from itertools import product
 
 
 class keyboard:
-    def __init__(self, layout=["qwertyuiop", "asdfghjkl;", "zxcvbnm,./"]):
+    def __init__(
+        self,
+        layout="`1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?",
+    ):
         self.row_offsets = [-0.25, 0, 0.5]
-        self.chars = "".join(layout)
+        self.chars = layout
         self.swap_pair = ["", ""]
         self.key_count = 30
+        self.lowercase = layout[:30]
+        self.uppercase = layout[30:]
 
         self.x_to_finger = {
             5: "lp",
@@ -25,15 +30,13 @@ class keyboard:
 
         self.key_to_pos = {}
 
-        for y, row in enumerate(layout):
+        for y, row in enumerate([self.lowercase[i : i + 10] for i in range(3)]):
             for x, c in enumerate(row):
                 new_x = x - 5 if x < 5 else x - 4
 
                 self.key_to_pos[c] = (new_x, 3 - y)
 
         self.pos_to_key = dict(zip(self.key_to_pos.values(), self.key_to_pos.keys()))
-
-        print(self.pos_to_key)
 
     def __repr__(self):
         rows = [list(self.pos_to_key.values())[i : i + 10] for i in range(0, 30, 10)]
@@ -83,8 +86,23 @@ class keyboard:
 
 
 class classifier:
-    def __init__(self, keyboard):
-        self.kb = keyboard
+    def __init__(self, kb="qwerty"):
+        self.keyboards = {
+            "qwerty": keyboard(
+                "qwertyuiopasdfghjkl;'zxcvbnm,./QWERTYUIOPASDFGHJKL:\"ZXCVBNM<>?"
+            ),
+            "azerty": keyboard(
+                "azertyuiopqsdfghjkl;'wxcvbnm,./AZERTYUIOPQSDFGHJKL:\"WXCVBNM<>?"
+            ),
+            "dvorak": keyboard(
+                "',.pyfgcrlaoeuidhtns-;qjkxbmwvzPYFGCRL?+|AOEUIDHTNS_:QJKXBMWVZ"
+            ),
+            "qwertz": keyboard(
+                "qwertzuiopasdfghjklöäyxcvbnm,.-QWERTZUIOPASDFGHJKLÖÄYXCVBNM;:_"
+            ),
+        }
+
+        self.kb = self.keyboards[kb]
 
     def is_pinky(self, k):
         return abs(self.kb.get_pos(k)[0]) == 5
@@ -198,11 +216,31 @@ class classifier:
         return bg[0] != bg[1] and self.kb.get_finger(bg[0]) == self.kb.get_finger(bg[1])
 
 
-kb = keyboard()
-c = classifier(kb)
+c = classifier()
+
+for i in range(len(c.keyboards)):
+    for j in range(i + 1, len(c.keyboards)):
+        k1 = list(c.keyboards.keys())[i]
+        k2 = list(c.keyboards.keys())[j]
+
+        print(
+            k1,
+            "<=>",
+            k2,
+            "".join(
+                [
+                    v
+                    for i, v in enumerate(c.keyboards[k2].lowercase)
+                    if v == c.keyboards[k1].lowercase[i]
+                ]
+            ),
+        )
 
 
 def test():
+    c = classifier()
+    kb = c.kb
+
     for _ in range(5):
         kb.swap()
         print(kb)
